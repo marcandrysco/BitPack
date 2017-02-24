@@ -27,7 +27,7 @@ void pack_uint(void **ptr, uint8_t *byte, uint8_t *off, unsigned int val, unsign
 	assert((8 * sizeof(int)) >= width);
 
 	if((*off + width) < 8) {
-		*byte |= (val << *off);
+		*byte |= (width ? pack_uext(val, width) : 0) << *off;
 		*off += width;
 	}
 	else {
@@ -44,7 +44,7 @@ void pack_uint(void **ptr, uint8_t *byte, uint8_t *off, unsigned int val, unsign
 			width -= 8;
 		}
 
-		*byte = val;
+		*byte = width ? pack_uext(val, width) : 0;
 		*off = width;
 	}
 }
@@ -58,7 +58,7 @@ void pack_uint(void **ptr, uint8_t *byte, uint8_t *off, unsigned int val, unsign
 void pack_flush(void **ptr, uint8_t *byte, uint8_t *off)
 {
 	if(*off > 0) {
-		*(uint8_t *)(*ptr) = *byte;
+		*(uint8_t *)(*ptr)++ = *byte;
 		*byte = *off = 0;
 	}
 }
@@ -90,7 +90,7 @@ void fpack_uint(FILE *file, uint8_t *byte, uint8_t *off, unsigned int val, unsig
 	assert((8 * sizeof(int)) >= width);
 
 	if((*off + width) < 8) {
-		*byte |= (val << *off);
+		*byte |= (width ? pack_uext(val, width) : 0) << *off;
 		*off += width;
 	}
 	else {
@@ -107,7 +107,7 @@ void fpack_uint(FILE *file, uint8_t *byte, uint8_t *off, unsigned int val, unsig
 			width -= 8;
 		}
 
-		*byte = val;
+		*byte = width ? pack_uext(val, width) : 0;
 		*off = width;
 	}
 }
@@ -137,7 +137,7 @@ void fpack_flush(FILE *file, uint8_t *byte, uint8_t *off)
  */
 int unpack_int(void **ptr, uint8_t *byte, uint8_t *off, unsigned int width)
 {
-	return pack_sext(unpack_uint(ptr, byte, off, width), width);
+	return width ? pack_sext(unpack_uint(ptr, byte, off, width), width) : 0;
 }
 
 /**
@@ -177,11 +177,13 @@ unsigned int unpack_uint(void **ptr, uint8_t *byte, uint8_t *off, unsigned int w
 			*off = 8 - width;
 		}
 	}
-	else {
+	else if(width > 0) {
 		val = pack_uext(*byte, width);
 		*byte >>= width;
 		*off -= width;
 	}
+	else
+		val = 0;
 
 	return val;
 }
@@ -209,7 +211,7 @@ void unpack_align(void **ptr, uint8_t *byte, uint8_t *off)
  */
 int funpack_int(FILE *file, uint8_t *byte, uint8_t *off, unsigned int width)
 {
-	return pack_sext(funpack_uint(file, byte, off, width), width);
+	return width ? pack_sext(funpack_uint(file, byte, off, width), width) : 0;
 }
 
 /**
@@ -249,11 +251,13 @@ unsigned int funpack_uint(FILE *file, uint8_t *byte, uint8_t *off, unsigned int 
 			*off = 8 - width;
 		}
 	}
-	else {
+	else if(width > 0) {
 		val = pack_uext(*byte, width);
 		*byte >>= width;
 		*off -= width;
 	}
+	else
+		val = 0;
 
 	return val;
 }
